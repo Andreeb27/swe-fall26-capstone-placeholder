@@ -11,14 +11,33 @@ A scale reading becomes a **pour event**, is checked against **recipes / POS con
 - Scale: Half Decent Scale over WiFi (WebSocket). A simulated scale is the default so you can develop without hardware.
 - Database: not chosen yet (SQL Server or MySQL). Core code depends on repository interfaces only.
 
-## Run it
+## Prerequisites
+- [Python 3.11+](https://www.python.org/downloads/). On Windows, tick "Add python.exe to PATH" in the installer, then open a new terminal and check `python --version`.
+- VS Code users: install the Microsoft **Python** extension and select the `.venv` interpreter (`Ctrl+Shift+P` > "Python: Select Interpreter") so new terminals activate it automatically.
+
+## First-time setup (once per clone)
 ```bash
 cd backend
 python -m venv .venv
 .venv\Scripts\activate          # macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
+```
+Re-run `pip install -r requirements.txt` only when `requirements.txt` changes (e.g. after pulling).
+
+## Run the app (every time)
+```bash
+cd backend
+.venv\Scripts\activate          # macOS/Linux: source .venv/bin/activate
 uvicorn app.main:app --reload
 ```
+`--reload` restarts the server when you save a file. Stop it with `Ctrl+C`.
+
+If PowerShell blocks `activate` with a script-execution error, run this once:
+```bash
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
+
+## Use it
 - App: http://localhost:8000 (shows "Hello World" and a live "Backend: ok" line)
 - API docs (auto-generated): http://localhost:8000/docs
 - Tests: `pytest` (from `backend/`)
