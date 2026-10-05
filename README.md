@@ -8,6 +8,7 @@ A scale reading becomes a **pour event**, is checked against **recipes / POS con
 ## Stack
 - Backend: Python 3.11+, FastAPI, Uvicorn
 - Frontend: plain HTML / CSS / JS (ES modules), no build step. Served by the backend.
+  Bootstrap 5.3 and Font Awesome Free 6.5 are loaded from CDNs in `frontend/index.html` (internet needed; to work offline, download them into `frontend/vendor/` and link locally). Keep `css/styles.css` last so your styles override Bootstrap.
 - Scale: Half Decent Scale over WiFi (WebSocket). A simulated scale is the default so you can develop without hardware.
 - Database: not chosen yet (SQL Server or MySQL). Core code depends on repository interfaces only.
 
