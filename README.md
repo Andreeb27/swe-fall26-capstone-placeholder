@@ -45,18 +45,34 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 
 Config is read from environment variables (see `backend/.env.example`), e.g. `SCALE_DRIVER=simulated|half_decent_wifi`.
 
-## Layout
+## Architecture: Clean Architecture (read this first)
+Clean Architecture organizes code in layers so that the important business logic (pours, recipes, rules) sits in the middle and knows nothing about the tools around it, like the web framework, the database, or the scale hardware. This matters for CubitMat because the sponsor requires that the scale be replaceable (USB or WiFi) and the database is still undecided. With this structure, swapping either one means writing a single new adapter instead of rewriting the app. It also lets teammates work on different layers without stepping on each other, and lets us test the logic without hardware or a database.
+
+**The one rule:** imports point inward only. `interfaces -> application -> domain`, and `infrastructure -> domain`. Code in `domain/` must never import FastAPI, SQL libraries, or `websockets`.
+
 ```
 backend/app/
-  domain/          entities (PourEvent, Recipe, WeightReading) + ports (ScaleReader, repositories). No frameworks.
-  application/     use cases (business workflows). Depend on domain only.
-  infrastructure/  adapters: scales, (future) database, config.
-  interfaces/      FastAPI routes. Thin: call a use case, return JSON.
-  main.py          composition root, wires everything together.
-frontend/          index.html, css/, js/ (js/api.js is the only file that knows backend URLs)
-docs/              ARCHITECTURE.md
+  domain/            the core. No outside dependencies.
+  application/       business workflows, built on the domain.
+  infrastructure/    adapters to the outside world (hardware, DB, config).
+  interfaces/        the web API (how the outside talks to us).
+  main.py            wires everything together.
 ```
-Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) before adding code.
+
+| Layer | Path | What goes here | Example |
+|---|---|---|---|
+| **Domain: entities** | `backend/app/domain/entities/` | Plain data shapes for the business concepts. No framework code. | `pour_event.py`, `recipe.py`, `weight_reading.py` |
+| **Domain: ports** | `backend/app/domain/ports/` | Interfaces (abstract classes) that describe what we need from the outside world, without saying how it's done. | `scale_port.py` (`ScaleReader`), `repositories.py` |
+| **Application** | `backend/app/application/use_cases/` | One class per business action; the "what the system does" logic. They use ports, never concrete hardware or DB code. | `get_health.py`; future: DetectPour, ClassifyPour, EvaluateRules, RingInDrink |
+| **Infrastructure** | `backend/app/infrastructure/` | Concrete implementations of the ports, plus config. Anything that touches hardware, a database, or files. | `scale/simulated_scale.py`, `scale/half_decent_wifi_scale.py`, `config.py`; future: SQL repositories |
+| **Interfaces** | `backend/app/interfaces/api/` | FastAPI routes and request/response handling. Keep them thin: call a use case, return JSON. No business logic. | `router.py`, `dependencies.py` |
+| **Composition root** | `backend/app/main.py` | The only place that picks concrete adapters and plugs them into use cases. | builds the app, scale, and use cases |
+| **Frontend** | `frontend/` | Everything the browser shows. `js/api.js` is the only file that knows backend URLs. | `index.html`, `css/`, `js/` |
+| **Tests** | `backend/tests/` | Automated tests, run with `pytest`. | `test_health.py` |
+
+**Quick check when adding code:** if a rule about pours or recipes needs a database or hardware, define a port in `domain/ports/` and implement it in `infrastructure/` instead of calling the hardware or DB directly.
+
+More detail (diagram, "where does X go?" table, how to swap the scale): [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Next steps (for the team)
 1. Finalize ERD + data dictionary -> flesh out domain entities, pick the DB.
